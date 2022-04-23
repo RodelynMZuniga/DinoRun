@@ -1,11 +1,17 @@
+import sys
+
 import pygame
 import os
 import random
 pygame.init()
+pygame.display.set_caption('DINO RUN')
 
 SCREEN_HEIGHT = 510
 SCREEN_WIDTH = 1000
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+bg_img = pygame.image.load('Assets/bckground.jpg')
+bg_img = pygame.transform.scale(bg_img,(SCREEN_WIDTH,SCREEN_HEIGHT))
 
 RUNNING = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
            pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
@@ -26,6 +32,11 @@ BIRD = [pygame.image.load(os.path.join("Assets/Bird", "Bird1.png")),
 CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
+
+jump = pygame.mixer.Sound("Assets/sound/jump_sound.mp3")
+game_over_sound = pygame.mixer.Sound("Assets/sound/gameover_voice.mp3")
+duck_sound = pygame.mixer.Sound("Assets/sound/Duck_sound.mp3")
+bird_sound = pygame.mixer.Sound("Assets/sound/crow_sound.mp3")
 
 
 class Dinosaur:
@@ -160,6 +171,7 @@ class Bird(Obstacle):
             self.index = 0
         SCREEN.blit(self.image[self.index//5], self.rect)
         self.index += 1
+        bird_sound.play()
 
 
 def main():
@@ -174,6 +186,7 @@ def main():
     points = 0
     font = pygame.font.Font('freesansbold.ttf', 20)
     obstacles = []
+    death_count = 0
 
     def score():
         global points, game_speed
@@ -200,7 +213,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            SCREEN.fill((255,255,255))
+            SCREEN.blit(bg_img, (0, 0))
             userInput = pygame.key.get_pressed()
 
             player.draw(SCREEN)
@@ -219,7 +232,10 @@ def main():
                 obstacle.update()
 
                 if player.dino_rect.colliderect(obstacle.rect):
-                    pygame.draw.rect(SCREEN, (255, 0, 0), player.dino_rect, 2)
+                    game_over_sound.play()
+                    pygame.time.delay(250)
+                    death_count += 1
+                    menu(death_count)
 
             background()
 
@@ -232,4 +248,35 @@ def main():
             pygame.display.update()
 
 
-main()
+def menu(death_count):
+    global points
+    run = True
+    while run:
+        SCREEN.fill((255, 255, 255))
+        font = pygame.font.Font('freesansbold.ttf', 30)
+
+        if death_count == 0:
+            text = font.render("Press any Key to Start", True, (0, 0, 0))
+        elif death_count > 0:
+            text = font.render("Press any Key to Restart and ESC to Exit", True, (0, 0, 0))
+            score = font.render("Your Score: " + str(points), True, (0, 0, 0))
+            scoreRect = score.get_rect()
+            scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)
+            SCREEN.blit(score, scoreRect)
+
+        textRect = text.get_rect()
+        textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.8)
+
+        SCREEN.blit(text, textRect)
+        SCREEN.blit(RUNNING[0], (SCREEN_WIDTH // 2 - 20, SCREEN_HEIGHT // 2 - 115))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    sys.exit()
+                main()
+
+
+menu(death_count=0)
