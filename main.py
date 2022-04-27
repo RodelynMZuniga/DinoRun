@@ -1,10 +1,16 @@
+
 import sys
 
 import pygame
+from pygame import mixer
 import os
 import random
 pygame.init()
 pygame.display.set_caption('DINO RUN')
+
+pygame.mixer.music.load("Assets/sound/opening.mp3")
+pygame.mixer.music.set_volume(15)
+pygame.mixer.music.play(-1, 0.0)
 
 SCREEN_HEIGHT = 510
 SCREEN_WIDTH = 1000
@@ -64,10 +70,12 @@ class Dinosaur:
     def update(self, userInput):
         if self.dino_duck:
             self.duck()
+            duck_sound.play()
         if self.dino_run:
             self.run()
         if self.dino_jump:
             self.jump()
+            jump.play()
 
         if self.step_index >= 10:
             self.step_index = 0
@@ -108,7 +116,7 @@ class Dinosaur:
             self.dino_jump = False
             self.jump_vel = self.JUMP_VEL
 
-    def draw(self, SCREEN):
+    def draw(self, SCREEN): #odi
         SCREEN.blit(self.image, (self.dino_rect.x, self.dino_rect.y))
 
 
@@ -174,9 +182,11 @@ class Bird(Obstacle):
         bird_sound.play()
 
 
+
 def main():
     global game_speed, x_pos_bg, y_pos_bg, points, obstacles
     run = True
+    stop = False
     clock = pygame.time.Clock()
     player = Dinosaur()
     cloud = Cloud()
@@ -187,6 +197,7 @@ def main():
     font = pygame.font.Font('freesansbold.ttf', 20)
     obstacles = []
     death_count = 0
+
 
     def score():
         global points, game_speed
@@ -209,50 +220,59 @@ def main():
             x_pos_bg = 0
         x_pos_bg -= game_speed
 
+
     while run:
+
+        pygame.mixer.music.pause()
+        SCREEN.blit(bg_img, (0, 0))
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
-            SCREEN.blit(bg_img, (0, 0))
-            userInput = pygame.key.get_pressed()
 
-            player.draw(SCREEN)
-            player.update(userInput)
+        userInput = pygame.key.get_pressed()
 
-            if len(obstacles) == 0:
-                if random.randint(0, 2) == 0:
-                    obstacles.append(SmallCactus(SMALL_CACTUS))
-                elif random.randint(0, 2) == 1:
-                    obstacles.append(LargeCactus(LARGE_CACTUS))
-                elif random.randint(0, 2) == 2:
-                    obstacles.append(Bird(BIRD))
+        player.draw(SCREEN)
+        player.update(userInput)
 
-            for obstacle in obstacles:
-                obstacle.draw(SCREEN)
-                obstacle.update()
+        if len(obstacles) == 0:
+            if random.randint(0, 2) == 0:
+                obstacles.append(SmallCactus(SMALL_CACTUS))
+            elif random.randint(0, 2) == 1:
+                obstacles.append(LargeCactus(LARGE_CACTUS))
+            elif random.randint(0, 2) == 2:
+                obstacles.append(Bird(BIRD))
 
-                if player.dino_rect.colliderect(obstacle.rect):
-                    game_over_sound.play()
-                    pygame.time.delay(250)
-                    death_count += 1
-                    menu(death_count)
+        for obstacle in obstacles:
+            obstacle.draw(SCREEN)
+            obstacle.update()
 
-            background()
+            if player.dino_rect.colliderect(obstacle.rect):
+                bird_sound.stop()
+                game_over_sound.play()
+                pygame.time.delay(250)
+                death_count += 1
+                menu(death_count)
 
-            cloud.draw(SCREEN)
-            cloud.update()
+        background()
 
-            score()
+        cloud.draw(SCREEN)
+        cloud.update()
 
-            clock.tick(30)
-            pygame.display.update()
+        score()
+
+        clock.tick(30)
+        pygame.display.update()
 
 
 def menu(death_count):
     global points
     run = True
     while run:
-        SCREEN.fill((255, 255, 255))
+
+
+        SCREEN.blit(bg_img, (0, 0))
+
         font = pygame.font.Font('freesansbold.ttf', 30)
 
         if death_count == 0:
