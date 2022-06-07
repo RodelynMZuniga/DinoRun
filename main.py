@@ -16,8 +16,11 @@ SCREEN_HEIGHT = 510
 SCREEN_WIDTH = 1000
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+title_img = pygame.image.load('Assets/Other/title.png').convert_alpha()
+heart_img = pygame.image.load('Assets/Other/heart.png').convert_alpha()
+gameover_img = pygame.image.load('Assets/Other/GameOver.png').convert_alpha()
 bg_img = pygame.image.load('Assets/bckground.jpg')
-bg_img = pygame.transform.scale(bg_img,(SCREEN_WIDTH,SCREEN_HEIGHT))
+bg_img = pygame.transform.scale(bg_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 RUNNING = [pygame.image.load(os.path.join("Assets/Dino", "DinoRun1.png")),
            pygame.image.load(os.path.join("Assets/Dino", "DinoRun2.png"))]
@@ -38,7 +41,6 @@ BIRD = [pygame.image.load(os.path.join("Assets/Bird", "Bird1.png")),
 CLOUD = pygame.image.load(os.path.join("Assets/Other", "Cloud.png"))
 
 BG = pygame.image.load(os.path.join("Assets/Other", "Track.png"))
-
 jump = pygame.mixer.Sound("Assets/sound/jump_sound.mp3")
 game_over_sound = pygame.mixer.Sound("Assets/sound/gameover_voice.mp3")
 duck_sound = pygame.mixer.Sound("Assets/sound/Duck_sound.mp3")
@@ -70,35 +72,34 @@ class Dinosaur:
     def update(self, userInput):
         if self.dino_duck:
             self.duck()
-            duck_sound.play()
         if self.dino_run:
             self.run()
         if self.dino_jump:
             self.jump()
-            jump.play()
-
         if self.step_index >= 10:
             self.step_index = 0
 
         if userInput[pygame.K_UP] and not self.dino_jump:
             self.dino_duck = False
+            jump.play()
             self.dino_run = False
             self.dino_jump = True
         elif userInput[pygame.K_DOWN] and not self.dino_jump:
             self.dino_duck = True
+            
             self.dino_run = False
             self.dino_jump = False
         elif not (self.dino_jump or userInput[pygame.K_DOWN]):
             self.dino_duck = False
             self.dino_run = True
             self.dino_jump = False
-
     def duck(self):
         self.image = self.duck_img[self.step_index // 5]
         self.dino_rect = self.image.get_rect()
         self.dino_rect.x = self.X_POS
         self.dino_rect.y = self.Y_POS_DUCK
         self.step_index += 1
+        duck_sound.play()
 
     def run(self):
         self.image = self.run_img[self.step_index // 5]
@@ -110,6 +111,7 @@ class Dinosaur:
     def jump(self):
         self.image = self.jump_img
         if self.dino_jump:
+            
             self.dino_rect.y -= self.jump_vel * 4
             self.jump_vel -= 0.8
         if self.jump_vel < - self.JUMP_VEL:
@@ -194,10 +196,12 @@ def main():
     x_pos_bg = 0
     y_pos_bg = 480
     points = 0
-    font = pygame.font.Font('freesansbold.ttf', 20)
+    font = pygame.font.Font('freesansbold.ttf', 25)
     obstacles = []
-    death_count = 0
-
+    death_count = 3
+    pygame.mixer.music.load("Assets/sound/bg_music.mp3")
+    pygame.mixer.music.set_volume(10)
+    pygame.mixer.music.play(-1, 0.0)
 
     def score():
         global points, game_speed
@@ -206,6 +210,11 @@ def main():
             game_speed += 1
 
         text = font.render("Points: " + str(points), True, (0, 0, 0))
+        lives = font.render("Lives: ", True, (0,0,0))
+        SCREEN.blit(lives,(30,30))
+        for x in range(death_count):
+            SCREEN.blit(heart_img, (110 + (x * 38), 20))
+            
         textRect = text.get_rect()
         textRect.center = (900, 40)
         SCREEN.blit(text, textRect)
@@ -222,8 +231,6 @@ def main():
 
 
     while run:
-
-        pygame.mixer.music.pause()
         SCREEN.blit(bg_img, (0, 0))
 
         for event in pygame.event.get():
@@ -249,10 +256,13 @@ def main():
 
             if player.dino_rect.colliderect(obstacle.rect):
                 bird_sound.stop()
-                game_over_sound.play()
-                pygame.time.delay(250)
-                death_count += 1
-                menu(death_count)
+                obstacles.pop()
+                death_count -= 1
+                if death_count == 0:
+                    game_over_sound.play()
+                    pygame.time.delay(250)
+                    menu(death_count)
+                
 
         background()
 
@@ -268,27 +278,31 @@ def main():
 def menu(death_count):
     global points
     run = True
+    
     while run:
-
-
         SCREEN.blit(bg_img, (0, 0))
-
         font = pygame.font.Font('freesansbold.ttf', 30)
-
-        if death_count == 0:
+        if death_count > 0:
+            SCREEN.blit(title_img, (350, 120))
             text = font.render("Press any Key to Start", True, (0, 0, 0))
-        elif death_count > 0:
-            text = font.render("Press any Key to Restart and ESC to Exit", True, (0, 0, 0))
+            textRect = text.get_rect()
+            textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.35)
+            SCREEN.blit(RUNNING[0], (SCREEN_WIDTH // 2 - 40, SCREEN_HEIGHT // 2 - 25))
+            SCREEN.blit(text, textRect)
+
+        elif death_count == 0:
+            pygame.mixer.music.pause()
+            SCREEN.blit(gameover_img, (320,150))
+            gameovertext = font.render("Press any Key to Restart and ESC to Exit", True, (0, 0, 0))
             score = font.render("Your Score: " + str(points), True, (0, 0, 0))
             scoreRect = score.get_rect()
-            scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)
+            scoreRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.75)
             SCREEN.blit(score, scoreRect)
+            gameovertextRect = gameovertext.get_rect()
+            gameovertextRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.35)
+            SCREEN.blit(gameovertext, gameovertextRect)
 
-        textRect = text.get_rect()
-        textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 1.8)
-
-        SCREEN.blit(text, textRect)
-        SCREEN.blit(RUNNING[0], (SCREEN_WIDTH // 2 - 20, SCREEN_HEIGHT // 2 - 115))
+        
         pygame.display.update()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -299,4 +313,4 @@ def menu(death_count):
                 main()
 
 
-menu(death_count=0)
+menu(death_count=3)
